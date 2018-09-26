@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package>
+  <name>tom3d_simulation</name>
+  <version>1.0.0</version>
+  <description>The tom3d_simulation package</description>
+  <author>harsha</author>
+  <maintainer email="harsha@todo.todo">harsha</maintainer>
+  <license>BSD</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roslaunch</build_depend>
+  <run_depend>robot_state_publisher</run_depend>
+  <run_depend>rviz</run_depend>
+  <run_depend>joint_state_publisher</run_depend>
+  <run_depend>gazebo</run_depend>
+  <export>
+    <architecture_independent />
+  </export>
+</package>
+
+
