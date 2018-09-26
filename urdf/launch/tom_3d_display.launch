@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+
+<launch>
+        <arg name="robotname" value="tom_3d"/>
+
+        <arg name="robotworld" value="empty.world"/>
+
+        <arg name="rvizconfig" default="$(find tom_3d_simulation)/urdf/tom_3d_config.rviz" />
+
+        <arg name="model" default="$(find tom_3d_simulation)/urdf/tom_3d.urdf.xacro"/> 
+
+        <arg name="laser_scanner" value="true"/>
+ 
+        <arg name="gmapping" value="false"/> 
+  
+        <arg name="hector_mapping" value="false"/> 
+ 
+        <arg name="amcl" value="false"/>
+
+        <arg name="navigation" value="true"/> 
+
+        <arg name="localplanner" value="trajectory"/>
+        
+        <arg name="stereo_namespace" value="stereo_camera"/>
+
+        <arg name="left_image_topic"        default="$(arg stereo_namespace)/left/image_rect_color" />
+
+        <arg name="right_image_topic"       default="$(arg stereo_namespace)/right/image_rect" />    
+ 
+        <arg name="left_camera_info_topic"  default="$(arg stereo_namespace)/left/camera_info" />
+
+        <arg name="right_camera_info_topic" default="$(arg stereo_namespace)/right/camera_info" />
+
+<!--**************************************** RVIZ LAUNCH ************************************************************-->
+
+    <!-- Visualization RVIZ -->
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rvizconfig)" required="true"/>
+ <!-- <node pkg="nodelet" type="nodelet" name="points_xyzrgb" args="standalone rtabmap_ros/point_cloud_xyzrgb" output="screen">
+    <remap  from="left/image"        to="$(arg left_image_topic)"/>
+    <remap  from="right/image"       to="$(arg right_image_topic)"/>
+    <remap  from="left/camera_info"  to="$(arg left_camera_info_topic)"/>
+    <remap  from="right/camera_info" to="$(arg right_camera_info_topic)"/>
+    <remap from="cloud"             to="voxel_cloud" />-->
+
+    <!--<param name="decimation"  type="double" value="2"/>
+    <param name="voxel_size"  type="double" value="0.0"/>
+    <param name="approx_sync" type="bool"   value="true"/>
+  </node>-->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder $(arg model)"/>
+  <param name="publish_frequency" value="20.0"/>
+  <param name="rate" value="20.0"/>
+
+<!--******************************** ROBOT AND JOINT STATE PUBLISHER *************************************************-->
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher">
+  </node>
+
+  <!-- Provide simulated control of the robot joint angles -->
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+  <param name="use_gui" value="True" />
+  </node>
+<!--**************************************** GAZEBO LAUNCH ************************************************************-->
+
+ <!--
+  <arg name="world" default="empty"/> 
+  <arg name="paused" default="false"/>
+  <arg name="use_sim_time" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="headless" default="false"/>
+  <arg name="debug" default="false"/>-->  
+
+<!--
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+     <arg name="world_name" value="$(find tom_3d_simulation)/worlds/$(arg robotworld)"/>
+     <arg name="paused" value="$(arg paused)"/>
+     <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+     <arg name="gui" value="$(arg gui)"/>
+     <arg name="headless" value="$(arg headless)"/>
+     <arg name="debug" value="$(arg debug)"/>
+  </include>
+  
+  <include file="$(find tom_3d_simulation)/config/controller/launch/tom_3d_control.launch">
+     <arg name="model" value="$(arg model)"/>
+  </include
+
+  <node name="$(arg robotname)_spawn" pkg="gazebo_ros" type="spawn_model" output="screen"
+  args="-urdf -param robot_description -model $(arg robotname)" />--> 
+
+<!--***************************************** LASER SSCANNER ********************************************************-->
+
+ <group if="$(arg laser_scanner)">
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find asr_mild_base_launch_files)/log/rosconsole.config" />
+    <node name="sick" pkg="asr_mild_base_laserscanner" type="asr_mild_base_laserscanner" output="screen" required="true"/>
+    <param name="topic" value="sick_pls/scan" />
+    <!-- Laserscanner baudrate. Only four values: 9600, 19200, 38400, 500000. 38400 means 4 complete measurements in 1 sec. -->
+    <param name="baudrate" value="38400" />
+    <param name="serial" value="/dev/ttyUSB0" />
+    <param name="init_attempts" value="10" />
+ </group>
+
+<!--******************************************** ODOM TO BASE **********************************************************-->
+  
+  <node name="odom_to_base" pkg="encoder_values" type="odom_to_base">
+  </node>
+  
+<!--******************************************** MAPPING **************************************************************-->
+ <group if="$(arg gmapping)">
+    <include file="$(find tom_3d_simulation)/config/gmapping/launch/$(arg robotname)_gmapping.launch"/>
+ </group>
+
+ <group if="$(arg hector_mapping)">
+    <include file="$(find hector_mapping)/launch/mapping_default.launch"/>
+    <include file="$(find hector_geotiff)/launch/geotiff_mapper.launch"/>
+ </group>
+
+<!--********************************************* AMCL ****************************************************************-->
+
+ <group if="$(arg amcl)">
+    <include file="$(find tom_3d_simulation)/config/amcl/launch/$(arg robotname)_amcl.launch"/>
+ </group>
+
+<!--******************************************* MOVE BASE *************************************************************-->
+
+ <group if="$(arg navigation)">
+    <include file="$(find tom_3d_simulation)/config/navigation/$(arg localplanner)_local_planner/$(arg robotname)_movebase_$(arg localplanner).launch"/>
+ </group> 
+
+
+</launch>
+

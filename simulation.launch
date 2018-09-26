@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <!--set to the required robot and world-->
+  <arg name="robotname" value="tom_3d"/>
+  <arg name="robotworld" value="empty.world"/>
+
+  <arg name="model" default="$(find tom_3d_simulation)/urdf/tom_3d.urdf.xacro"/>
+
+  <!--To launch RVIZ set the value to true-->
+  <arg name="rviz" value="true"/>
+
+  <!--To launch scanunifier set the value to true
+  <arg name="scanunifier" value="true"/>-->
+
+  <!--To move robot using teleop_keyboard-->
+  <arg name="teleop_keyboard" value="false"/>
+   
+  <!--To move robot using joystick-->
+  <arg name="joystick" value="false"/>
+ 
+  <!--__For the Navigation Package__-->
+  
+  <!--To launch gmapping to create a map-->
+  <!--Before changing the value to true both arg 'amcl' and 'move_base' must be set to false-->
+  <arg name="gmapping" value="false"/> 
+
+  <!--To launch amcl--> 
+  <arg name="amcl" value="false"/>
+
+  <!--To launch move base-->
+  <arg name="navigation" value="false"/> 
+
+  <!--To set the local planner-->
+  <arg name="localplanner" value="eband"/> 
+
+<!---=================================================================================================================================================================-->
+  <!--Gazebo Variables--> 
+  <arg name="world" default="empty"/> 
+  <arg name="paused" default="false"/>
+  <arg name="use_sim_time" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="headless" default="false"/>
+  <arg name="debug" default="false"/>
+  
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+   
+    <arg name="world_name" value="$(find tom_3d_simulation)/worlds/$(arg robotworld)"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="headless" value="$(arg headless)"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+<!---=================================================================================================================================================================-->
+
+  <!--Robot description to param server-->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(arg model)'"/>
+  
+ <!-- <include file="$(find tom_3d_simulation)/config/controller/launch/tom_3d_control.launch">
+		<arg name="model" value="$(arg model)"/>
+  </include>-->
+
+  <node name="$(arg robotname)_spawn" pkg="gazebo_ros" type="spawn_model" output="screen"
+  args="-urdf -param -model $(arg robotname)" /> 
+
+<!---=================================================================================================================================================================-->
+ <!--if arg rviz is set to true-->
+
+ <group if="$(arg rviz)">
+   <param name="robot_description" command="$(find xacro)/xacro.py '$(find tom_3d_simulation)/urdf/$(arg robotname).urdf.xacro'"/> 
+   <arg name="rvizconfig" default="$(find tom_3d_simulation)/urdf/$(arg robotname)_config.rviz" />
+   <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true"/>
+ </group>
+ 
+<!---=================================================================================================================================================================-->
+ 
+ <!--tom_3d control Package  **To use teleop-keyboard and joystick, tom_3d_control package must be cloned to the workspace**--> 
+ 
+ <!--if arg teleop-keyboard is set to true-->
+
+ <group if="$(arg teleop_keyboard)">
+   <node pkg="turtlebot_teleop" type="turtlebot_teleop_key" name="turtlebot_teleop_keyboard"  output="screen">
+    <param name="scale_linear" value="0.5" type="double"/>
+    <param name="scale_angular" value="1.5" type="double"/>
+    <remap from="turtlebot_teleop_keyboard/cmd_vel" to="cmd_vel"/>
+  </node>
+ </group>
+
+ <!--if arg joystick is set to true (default=false)-->
+
+ <group if="$(arg joystick)">
+ <include file="$(find tom_3d_teleop)/ros/launch/teleop.launch"/>
+ </group>
+
+<!---=================================================================================================================================================================-->
+
+ <!--Naviagation Package-->
+
+ <!--if arg gmapping is set to true (default=false)-->
+
+ <group if="$(arg gmapping)">
+ <include file="$(find tom_3d_simulation)/config/gmapping/launch/$(arg robotname)_gmapping.launch"/>
+ </group>
+
+ <!--if arg amcl is set to true (default=false)-->
+
+ <group if="$(arg amcl)">
+ <include file="$(find tom_3d_simulation)/config/amcl/launch/$(arg robotname)_amcl.launch"/>
+ </group>
+
+ <!--if arg move_base is set to true-->
+
+ <group if="$(arg navigation)">
+ <include file="$(find tom_3d_simulation)/config/navigation/$(arg localplanner)_local_planner/$(arg robotname)_movebase_$(arg localplanner).launch"/>
+ </group> 
+
+
+</launch>
